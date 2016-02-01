@@ -19,4 +19,4 @@ app.use(route.get(MERAKI_EVENTS_ROOT, eventHandler.events));
 app.use(route.post(MERAKI_EVENTS_ROOT, eventHandler.events));
 app.use(route.get(TEAM, eventHandler.team));
 
-app.listen(4567);
+app.listen(process.env.DOKKU_NGINX_PORT ? process.env.DOKKU_NGINX_PORT : process.env.PORT);
