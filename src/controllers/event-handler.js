@@ -32,9 +32,9 @@ module.exports.events = function *(next) {
       throw new Error('Wrong secret.');
     }
     this.body = this.request.body;
-  } else {
-    return yield next;
   }
+  
+  return yield next;
 }
 
 module.exports.team = function *(next) {
