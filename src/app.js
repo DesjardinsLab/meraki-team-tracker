@@ -2,6 +2,7 @@
 require('dotenv').config({path: 'config/.env'});
 
 var koa = require('koa');
+var cors = require('kcors')();
 var route = require('koa-route');
 var logger = require('koa-logger')();
 var bodyparser = require('koa-bodyparser')();
@@ -12,6 +13,7 @@ const TEAM = '/team';
 
 var app = koa();
 
+app.use(cors);
 app.use(logger);
 app.use(bodyparser);
 
