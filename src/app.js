@@ -7,7 +7,7 @@ var logger = require('koa-logger')();
 var bodyparser = require('koa-bodyparser')();
 var eventHandler = require('./controllers/event-handler');
 
-const MERAKI_EVENTS_ROOT = '/cmx';
+const MERAKI_EVENTS_ROOT = process.env.MERAKI_POST_PATH ? process.env.MERAKI_POST_PATH : '/cmx';
 const TEAM = '/team';
 
 var app = koa();

@@ -3,7 +3,7 @@ Usage
 You must define the following environment variables using a .env file in the
 project's root:
 
-  * TIME_DELTA : How long it takes until someone is considered "away" since their last entry.
+  * TIME_DELTA: How long it takes until someone is considered "away" since their last entry.
   * SECRET: The secret key used by Meraki.
   * VALIDATOR: The validator used by Meraki on get requests.
 

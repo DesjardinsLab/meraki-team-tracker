@@ -1,6 +1,6 @@
 var fs = require('fs');
 
-const VALIDATOR = process.env.VALIDATOR ? process.env.VALIDATOR : '79b824bb1a26aa0e07e2c2a38610e12cdcb3e5b0';
+const VALIDATOR = process.env.VALIDATOR ? process.env.VALIDATOR : '';
 const SECRET = process.env.SECRET ? process.env.SECRET : 'secret';
 const TIME_DELTA = process.env.TIME_DELTA ? process.env.TIME_DELTA : 90000;
 // build associative array of tracked clients.
