@@ -4,6 +4,7 @@
   "description": "Meraki API interface.",
   "main": "index.js",
   "dependencies": {
+    "dotenv": "^2.0.0",
     "fs": "0.0.2",
     "koa": "^1.1.2",
     "koa-body": "^1.4.0",

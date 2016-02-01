@@ -1,18 +1,59 @@
 var fs = require('fs');
 
-const VALIDATOR = '79b824bb1a26aa0e07e2c2a38610e12cdcb3e5b0';
-const SECRET = 'secret';
+const VALIDATOR = process.env.VALIDATOR ? process.env.VALIDATOR : '79b824bb1a26aa0e07e2c2a38610e12cdcb3e5b0';
+const SECRET = process.env.SECRET ? process.env.SECRET : 'secret';
+const TIME_DELTA = process.env.TIME_DELTA ? process.env.TIME_DELTA : 90000;
+// build associative array of tracked clients.
+const TRACKED_CLIENTS = (function () {
+  var trackedClientsData = JSON.parse(fs.readFileSync('./tracked-clients.json', 'utf8'));
+  var trackedClientsByMac = {};
+
+  for (var i = 0; i < trackedClientsData.length; i++) {
+    trackedClientsByMac[trackedClientsData[i].clientMac] = {};
+  }
+
+  return trackedClientsByMac;
+})();
 
 module.exports.events = function *(next) {
   if (this.method === 'GET') {
     this.body = VALIDATOR;
   } else if (this.method === 'POST') {
-    var body = JSON.stringify(this.request.body) + '\n';
+    if (this.request.body.type === 'DevicesSeen') {
+      for (var i = 0; i < this.request.body.data.observations.length; i++) {
+        var observation = this.request.body.data.observations[i];
+
+        if (typeof TRACKED_CLIENTS[observation.clientMac] !== 'undefined') {
+          TRACKED_CLIENTS[observation.clientMac] = observation;
+        }
+      }
+    }
     if (this.request.body.secret !== SECRET) {
       throw new Error('Wrong secret.');
     }
-    fs.appendFile('output.txt', body)
-    this.body = body
+    this.body = this.request.body;
+  } else {
+    return yield next;
   }
-  yield next;
+}
+
+module.exports.team = function *(next) {
+  if (this.method === 'GET') {
+    var trackedClientsStatus = {};
+
+    for (var i in TRACKED_CLIENTS) {
+      if (TRACKED_CLIENTS.hasOwnProperty(i)) {
+        var client = TRACKED_CLIENTS[i];
+
+        // if client has been seen within time interval,
+        if ((new Date() - TIME_DELTA) < new Date(client.seenTime)) {
+          trackedClientsStatus[client.clientMac] = client;
+        }
+      }
+    }
+
+    this.body = trackedClientsStatus;
+  }
+
+  return yield next;
 }
