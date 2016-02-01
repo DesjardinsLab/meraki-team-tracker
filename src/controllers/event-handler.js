@@ -5,11 +5,11 @@ const SECRET = process.env.SECRET ? process.env.SECRET : 'secret';
 const TIME_DELTA = process.env.TIME_DELTA ? process.env.TIME_DELTA : 90000;
 // build associative array of tracked clients.
 const TRACKED_CLIENTS = (function () {
-  var trackedClientsData = JSON.parse(fs.readFileSync('./tracked-clients.json', 'utf8'));
+  var trackedClientsData = JSON.parse(fs.readFileSync('./config/tracked-clients.json', 'utf8'));
   var trackedClientsByMac = {};
 
   for (var i = 0; i < trackedClientsData.length; i++) {
-    trackedClientsByMac[trackedClientsData[i].clientMac] = {};
+    trackedClientsByMac[trackedClientsData[i].clientMac] = trackedClientsData[i];
   }
 
   return trackedClientsByMac;
@@ -24,7 +24,12 @@ module.exports.events = function *(next) {
         var observation = this.request.body.data.observations[i];
 
         if (typeof TRACKED_CLIENTS[observation.clientMac] !== 'undefined') {
-          TRACKED_CLIENTS[observation.clientMac] = observation;
+          TRACKED_CLIENTS[observation.clientMac] = {
+            clientMac: observation.clientMac,
+            seenTime: observation.seenTime,
+            name: TRACKED_CLIENTS[observation.clientMac].name,
+            img: TRACKED_CLIENTS[observation.clientMac].img
+          };
         }
       }
     }
@@ -33,7 +38,7 @@ module.exports.events = function *(next) {
     }
     this.body = this.request.body;
   }
-  
+
   return yield next;
 }
 

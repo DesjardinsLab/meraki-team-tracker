@@ -1,5 +1,5 @@
 // load environment variables
-require('dotenv').config();
+require('dotenv').config({path: 'config/.env'});
 
 var koa = require('koa');
 var route = require('koa-route');
