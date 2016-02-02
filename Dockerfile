@@ -1,7 +1,9 @@
-FROM node:5.4.0
+FROM node:5.5-slim
 
 RUN mkdir /app
+
 WORKDIR /app
+
 COPY ./ /app/
 RUN npm install --production
 
