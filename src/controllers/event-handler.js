@@ -9,7 +9,10 @@ const TRACKED_CLIENTS = (function () {
   var trackedClientsByMac = {};
 
   for (var i = 0; i < trackedClientsData.length; i++) {
-    trackedClientsByMac[trackedClientsData[i].clientMac] = trackedClientsData[i];
+    var trackedClientData = trackedClientsData[i];
+    trackedClientData.clientMac = trackedClientData.clientMac.toLowerCase();
+
+    trackedClientsByMac[trackedClientsData[i].clientMac.toLowerCase()] = trackedClientsData[i];
   }
 
   return trackedClientsByMac;
@@ -22,6 +25,7 @@ module.exports.events = function *(next) {
     if (this.request.body.type === 'DevicesSeen') {
       for (var i = 0; i < this.request.body.data.observations.length; i++) {
         var observation = this.request.body.data.observations[i];
+        observation.clientMac = observation.clientMac.toLowerCase();
 
         if (typeof TRACKED_CLIENTS[observation.clientMac] !== 'undefined') {
           TRACKED_CLIENTS[observation.clientMac] = {
