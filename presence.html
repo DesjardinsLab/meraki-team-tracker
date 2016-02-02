@@ -1,0 +1,77 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <script type="text/javascript">
+      var memberList = document.getElementById('memberList');
+      if (!window.processing && !memberList) {
+        window.processing = true;
+        fetch('http://meraki-team.inno-apps.net/team').then(function (response) {
+          return response.json();
+        }).then(function (members) {
+          var content = document.createElement('DIV');
+          var title = document.createElement('H1');
+
+          title.appendChild(document.createTextNode('Membres présents au lab'));
+          content.appendChild(title);
+
+          var description = document.createElement('DIV');
+          description.appendChild(document.createTextNode('Les persones suivantes sont présentes au Desjardins Lab en ce moment.'));
+          description.className = 'desc';
+          content.appendChild(description);
+
+          var memberList = document.createElement('UL');
+          memberList.setAttribute('id', 'memberList');
+          var empty = true;
+          for (var i in members) {
+            // note that the members list was not empty.
+            empty = false;
+            var member = members[i];
+            var memberElement = document.createElement('LI');
+
+            var pictureWrapper = document.createElement('DIV');
+            pictureWrapper.className = 'team-member-pic';
+
+            var picture = document.createElement('IMG');
+            picture.setAttribute('src', member.img);
+
+            pictureWrapper.appendChild(picture);
+            memberElement.appendChild(pictureWrapper);
+
+            var nameWrapper = document.createElement('DIV');
+            nameWrapper.className = 'team-member-info';
+
+            var name = document.createElement('H1');
+            name.appendChild(document.createTextNode(member.name));
+            nameWrapper.appendChild(name);
+
+            memberElement.appendChild(nameWrapper);
+            memberList.appendChild(memberElement);
+          }
+          if (!empty) {
+            content.appendChild(memberList);
+
+            var container = document.getElementById('presentMembers');
+
+            if (container !== null) {
+              container.appendChild(content);
+            }
+          } else {
+            var emptyText = document.createElement('H2');
+            emptyText.appendChild(document.createTextNode('Aucun membre présent.'));
+          }
+          window.processing = false;
+        }).catch(function (err) {
+          console.log(err);
+          var container = document.getElementById('presentMembers');
+          var title = document.createElement('H1');
+
+          title.appendChild(document.createTextNode("Cette page n'est pas disponible en ce moment."));
+          container.appendChild(title);
+        });
+      }
+    </script>
+    <div id='presentMembers' />
+  </body>
+</html>
