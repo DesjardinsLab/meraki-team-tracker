@@ -1,8 +1,18 @@
 var fs = require('fs');
 
+var twilio = false;
+
+if (process.env.TWILIO_SID && process.env.TWILIO_AUTH_TOKEN) {
+  twilio = require('twilio')(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+}
+
 const VALIDATOR = process.env.VALIDATOR ? process.env.VALIDATOR : '';
 const SECRET = process.env.SECRET ? process.env.SECRET : 'secret';
 const TIME_DELTA = process.env.TIME_DELTA ? process.env.TIME_DELTA : 90000;
+
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER ? process.env.TWILIO_PHONE_NUMBER : false;
+const TWILIO_TWIML_URL = process.env.TWILIO_TWIML_URL ? process.env.TWILIO_TWIML_URL : null;
+const TWILIO_CALLER_NAME = process.env.TWILIO_CALLER_NAME ? process.env.TWILIO_CALLER_NAME : null;
 // build associative array of tracked clients.
 const TRACKED_CLIENTS = (function () {
   var trackedClientsData = JSON.parse(fs.readFileSync('./config/tracked-clients.json', 'utf8'));
@@ -32,7 +42,9 @@ module.exports.events = function *(next) {
             clientMac: observation.clientMac,
             seenTime: observation.seenTime,
             name: TRACKED_CLIENTS[observation.clientMac].name,
-            img: TRACKED_CLIENTS[observation.clientMac].img
+            img: TRACKED_CLIENTS[observation.clientMac].img,
+            clientPhone: TRACKED_CLIENTS[observation.clientMac].clientPhone,
+            clientExtension: TRACKED_CLIENTS[observation.clientMac].clientExtension
           };
         }
       }
@@ -64,5 +76,31 @@ module.exports.team = function *(next) {
     this.body = trackedClientsStatus;
   }
 
+  return yield next;
+}
+
+module.exports.call = function *(id, next) {
+  if (!TWILIO_PHONE_NUMBER || !twilio) {
+    this.body = 'Twilio is not configured. Cannot call.';
+    return yield next;
+  } else if (this.method === 'GET') {
+    var targetClient = TRACKED_CLIENTS[id.toLowerCase()];
+    var twimlUrl = TWILIO_TWIML_URL ? TWILIO_TWIML_URL : this.request.origin + '/twiml/' + encodeURIComponent(targetClient.name);
+
+    if (targetClient.clientPhone && TWILIO_PHONE_NUMBER) {
+      twilio.makeCall({
+        to: targetClient.clientPhone,
+        from: TWILIO_PHONE_NUMBER,
+        url: twimlUrl,
+        callerName: TWILIO_CALLER_NAME,
+        sendDigits: targetClient.clientExtension ? targetClient.clientExtension : null
+      });
+      this.body = 'Making call to: ' + id;
+    } else if (TWILIO_PHONE_NUMBER) {
+      this.body = 'No phone number specified for client: ' + id;
+    } else {
+      this.body = 'No phone number specified for Twilio.';
+    }
+  }
   return yield next;
 }

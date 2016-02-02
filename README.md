@@ -9,6 +9,13 @@ project's root:
   * SECRET: The secret key used by Meraki.
   * VALIDATOR: The validator used by Meraki on get requests.
 
+The following environment variables are optional but are required for Twilio support:
+
+ * TWILIO_SID: SID given by Twilio.
+ * TWILIO_TOKEN: Auth token given by Twilio.
+ * TWILIO_PHONE_NUMBER: Phone number used by Twilio.
+ * TWILIO_TWIML_URL: The URL of your custom twiml file. (optional)
+
 You also need to define a "tracked-clients.json" file using the following format:
 
 ```
@@ -16,15 +23,23 @@ You also need to define a "tracked-clients.json" file using the following format
   {
     "name": "clientName1",
     "img": "domain.com/avatar.png",
-    "clientMac": "aa:bb:cc:dd:ee:ff"
+    "clientMac": "aa:bb:cc:dd:ee:ff",
+    "clientPhone": "+14385552764",
+    "clientExtension": "1234"
   },
   {
     "name": "clientName2",
     "img": "domain.com/avatar.png",
-    "clientMac": "aa:bb:cc:dd:ee:ff"
+    "clientMac": "aa:bb:cc:dd:ee:ff",
+    "clientPhone": "+14385552764"
   },
   {
 
   }
 ]
 ```
+
+Using Twilio
+==================
+If a Twilio SID and Token are specified, it is possible to send a call to tracked
+clients using the demo page 'index.html'.

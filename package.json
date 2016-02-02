@@ -12,7 +12,8 @@
     "koa-cors": "0.0.16",
     "koa-logger": "^1.3.0",
     "koa-route": "^2.4.2",
-    "koa-static": "^2.0.0"
+    "koa-static": "^2.0.0",
+    "twilio": "^2.9.0"
   },
   "repository": {
     "type": "git",
