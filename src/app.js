@@ -4,6 +4,7 @@ require('dotenv').config({path: 'config/.env'});
 var koa = require('koa');
 var cors = require('koa-cors')();
 var route = require('koa-route');
+var koaStatic = require('koa-static')('src/static');
 var logger = require('koa-logger')();
 var bodyparser = require('koa-bodyparser')();
 var eventHandler = require('./controllers/event-handler');
@@ -12,6 +13,11 @@ const MERAKI_EVENTS_ROOT = process.env.MERAKI_POST_PATH ? process.env.MERAKI_POS
 const TEAM = '/team';
 
 var app = koa();
+
+if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+  console.log('Serving static resources.')
+  app.use(koaStatic);
+}
 
 app.use(cors);
 app.use(logger);
