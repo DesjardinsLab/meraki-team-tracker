@@ -11,10 +11,16 @@ project's root:
 
 The following environment variables are optional but are required for Twilio support:
 
- * TWILIO_SID: SID given by Twilio.
- * TWILIO_TOKEN: Auth token given by Twilio.
- * TWILIO_PHONE_NUMBER: Phone number used by Twilio.
- * TWILIO_TWIML_URL: The URL of your custom twiml file. (optional)
+ * **TWILIO_SID**: SID given by Twilio.
+ * **TWILIO_TOKEN**: Auth token given by Twilio.
+ * **TWILIO_PHONE_NUMBER**: Phone number used by Twilio.
+ * **TWILIO_TWIML_URL**: The URL of your custom twiml file. (optional)
+ * **TWILIO_SECRET**: A secret that will be used to validate a JWT sent to make a call.
+ * **TWILIO_CALL_LIMIT_INTERVAL**: Defines the minmum time (in milli) between calls to one person.
+ * **TWILIO_TWIML_MSG**: Defines the message that will be read when the call is answered (a name can be inserted using '%n' in the message). This field is required if **TWILIO_TWIM_URL** is not set)
+ * **TWILIO_TWIML_LANGUAGE**: Defines the language that will be used to read the twiml message. (required if **TWILIO_TWIM_URL** is not set)
+
+Note: if you want more freedom with the twiml message, you should change **TWILIO_TWIML_URL**.
 
 You also need to define a "tracked-clients.json" file using the following format:
 

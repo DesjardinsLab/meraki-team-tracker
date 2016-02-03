@@ -5,6 +5,28 @@
       body {
         font-family: Calibri, Arial, Sans-serif;
       }
+      img.action-call {
+        width: 60px;
+        height: 60px;
+        opacity: 1;
+        transition: opacity 0.5s ease-in-out;
+        pointer-events: all;
+
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 30px;
+        border-radius: 50%;
+        background-color: #FFFFFF;
+      }
+      img.action-call.failed {
+        background-color: red;
+      }
+      img.action-call.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
       h1, h2 {
         font-weight: normal;
         font-family: 'PT Sans Narrow', sans-serif;
@@ -31,10 +53,11 @@
         box-sizing: border-box;
       }
       li .team-member-pic {
+        position: relative;
         float: left;
         width: 20%;
       }
-      li .team-member-pic img {
+      li .team-member-pic img.team-member-avatar {
         width: 100%;
         height: auto;
         border-radius: 50%;
@@ -67,62 +90,119 @@
   </head>
   <body>
     <script type="text/javascript">
+      window.call = function (id, cb) {
+        if (!window.calling) {
+          window.calling = true;
+          fetch('/call/' + id, {
+            method: 'POST',
+            // if there is a secret to use, it must be set beforehand.
+            secret: localStorage.secret
+          }).then(function (response) {
+            if (response.status !== 200) {
+              cb(response.statusText);
+            }
+          }).catch(function (err) {
+            cb(err);
+          });
+          window.calling = false;
+        }
+      };
+    </script>
+    <script type="text/javascript">
       var memberList = document.getElementById('memberList');
       if (!window.processing && !memberList) {
         window.processing = true;
-        fetch('http://meraki-team.inno-apps.net/team').then(function (response) {
+        fetch('/team').then(function (response) {
           return response.json();
         }).then(function (members) {
           var content = document.createElement('DIV');
           var title = document.createElement('H1');
 
-          title.appendChild(document.createTextNode('Membres présents au lab'));
+          title.appendChild(document.createTextNode('In attendance'));
           content.appendChild(title);
 
           var description = document.createElement('DIV');
-          description.appendChild(document.createTextNode('Les persones suivantes sont présentes au Desjardins Lab en ce moment.'));
+          description.appendChild(document.createTextNode('The following people are in being detected by Meraki.'));
           description.className = 'desc';
           content.appendChild(description);
 
           var memberList = document.createElement('UL');
           memberList.setAttribute('id', 'memberList');
+
           var empty = true;
           for (var i in members) {
             // note that the members list was not empty.
             empty = false;
             var member = members[i];
             var memberElement = document.createElement('LI');
+            memberElement.setAttribute('memberName', member.name);
 
             var pictureWrapper = document.createElement('DIV');
             pictureWrapper.className = 'team-member-pic';
 
             var picture = document.createElement('IMG');
             picture.setAttribute('src', member.img);
+            picture.className = 'team-member-avatar';
+
+            if (member.clientPhone) {
+              // add call functionality
+              var call = document.createElement('IMG');
+              var callClass = 'action-call';
+              var callHiddenClass = callClass + ' hidden';
+              call.className = callHiddenClass;
+              call.setAttribute('src', './icons/ic_notifications_active_black_24px.svg');
+              call.setAttribute('id', member.clientMac);
+
+              pictureWrapper.appendChild(call);
+
+              pictureWrapper.addEventListener('touchend', function (event) {
+                var calledElement = this.children[0];
+                if (!this.callActive) {
+                  this.callActive = true;
+                  calledElement.className = callClass;
+                  setTimeout(function() {
+                    this.callActive = false;
+                    calledElement.className = callHiddenClass;
+                  }.bind(this), 7500);
+                }
+              });
+
+              call.addEventListener('touchend', function () {
+                // if call is not hidden
+                if (this.className.indexOf('hidden') < 0) {
+                  window.call(this.id, function (err) {
+                    this.className = callClass + ' failed';
+                  }.bind(this));
+                }
+              });
+            }
 
             pictureWrapper.appendChild(picture);
             memberElement.appendChild(pictureWrapper);
 
-            var nameWrapper = document.createElement('DIV');
-            nameWrapper.className = 'team-member-info';
+            var infoWrapper = document.createElement('DIV');
+            infoWrapper.className = 'team-member-info';
 
             var name = document.createElement('H1');
             name.appendChild(document.createTextNode(member.name));
-            nameWrapper.appendChild(name);
+            infoWrapper.appendChild(name);
 
-            memberElement.appendChild(nameWrapper);
+            memberElement.appendChild(infoWrapper);
             memberList.appendChild(memberElement);
           }
+
+          var container = document.getElementById('presentMembers');
+
           if (!empty) {
             content.appendChild(memberList);
-
-            var container = document.getElementById('presentMembers');
 
             if (container !== null) {
               container.appendChild(content);
             }
           } else {
             var emptyText = document.createElement('H2');
-            emptyText.appendChild(document.createTextNode('Aucun membre présent.'));
+            emptyText.appendChild(document.createTextNode('There is no one here.'));
+            container.appendChild(emptyText);
           }
           window.processing = false;
         }).catch(function (err) {
@@ -130,7 +210,7 @@
           var container = document.getElementById('presentMembers');
           var title = document.createElement('H1');
 
-          title.appendChild(document.createTextNode("Cette page n'est pas disponible en ce moment."));
+          title.appendChild(document.createTextNode('This page is not available right now.'));
           container.appendChild(title);
         });
       }

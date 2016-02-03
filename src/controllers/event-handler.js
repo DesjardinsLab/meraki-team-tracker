@@ -55,12 +55,13 @@ module.exports.events = function *(next) {
     this.body = this.request.body;
   }
 
-  return yield next;
+  yield next;
 }
 
 module.exports.team = function *(next) {
   if (this.method === 'GET') {
     var trackedClientsStatus = {};
+    var cleanOutput = [];
 
     for (var i in TRACKED_CLIENTS) {
       if (TRACKED_CLIENTS.hasOwnProperty(i)) {
@@ -69,6 +70,14 @@ module.exports.team = function *(next) {
         // if client has been seen within time interval,
         if ((new Date() - TIME_DELTA) < new Date(client.seenTime)) {
           trackedClientsStatus[client.clientMac] = client;
+
+          // filter out phone number
+          cleanOutput.push(
+            name: client.name,
+            img: client.img,
+            seenTime: client.seenTime,
+            clientMac: client.clientMac
+          );
         }
       }
     }
@@ -76,14 +85,43 @@ module.exports.team = function *(next) {
     this.body = trackedClientsStatus;
   }
 
-  return yield next;
+  yield next;
 }
 
+const CALL_LIMIT_INTERVAL = process.env.TWILIO_CALL_LIMIT_INTERVAL ? process.env.TWILIO_CALL_LIMIT_INTERVAL : 0;
+const RESTRICTED_CALLS = {};
+
+var handleCallLimit = function (id) {
+  if (RESTRICTED_CALLS[id.toLowerCase()]) {
+    delete RESTRICTED_CALLS[id.toLowerCase()];
+    console.log('Call limit has been cleared for: ' + TRACKED_CLIENTS[id.toLowerCase()].name);
+  }
+};
+
+var limitCalls = function (id) {
+  if (!RESTRICTED_CALLS[id.toLowerCase()] && CALL_LIMIT_INTERVAL > 0) {
+    RESTRICTED_CALLS[id.toLowerCase()] = setTimeout(handleCallLimit, CALL_LIMIT_INTERVAL, id);
+  }
+};
+
+const TWILIO_SECRET = process.env.TWILIO_SECRET
+
 module.exports.call = function *(id, next) {
+  // throw error if request secret does not match env secret
+  if (TWILIO_SECRET && TWILIO_SECRET !== this.request.body.secret) {
+    this.status = 401;
+    throw new Error('Unauthorized', 401);
+  }
+  // throw error if target has been recently called
+  else if (RESTRICTED_CALLS[id.toLowerCase()]) {
+    this.status = 403;
+    throw new Error('Delay not met', 403);
+  }
+
   if (!TWILIO_PHONE_NUMBER || !twilio) {
     this.body = 'Twilio is not configured. Cannot call.';
     return yield next;
-  } else if (this.method === 'GET') {
+  } else if (this.method === 'POST') {
     var targetClient = TRACKED_CLIENTS[id.toLowerCase()];
     var twimlUrl = TWILIO_TWIML_URL ? TWILIO_TWIML_URL : this.request.origin + '/twiml/' + encodeURIComponent(targetClient.name);
 
@@ -94,6 +132,12 @@ module.exports.call = function *(id, next) {
         url: twimlUrl,
         callerName: TWILIO_CALLER_NAME,
         sendDigits: targetClient.clientExtension ? targetClient.clientExtension : null
+      }, function (err, responseData) {
+        if (err) {
+          console.log(err);
+        } else {
+          limitCalls(id);
+        }
       });
       this.body = 'Making call to: ' + id;
     } else if (TWILIO_PHONE_NUMBER) {
@@ -102,5 +146,18 @@ module.exports.call = function *(id, next) {
       this.body = 'No phone number specified for Twilio.';
     }
   }
+  yield next;
+}
+
+// parses the twilio message for "%n" and replaces it with the name.
+var addNameToMessage = function (msg, name) {
+  return msg.replace('%n', name);
+}
+
+module.exports.twiml = function *(name, next) {
+  this.body = '<?xml version="1.0" encoding="UTF-8"?><Response><Pause /><Say voice="woman" language="' +
+    process.env.TWILIO_TWIML_LANGUAGE + '">' +
+    addNameToMessage(process.env.TWILIO_TWIML_MSG, name) + '</Say></Response>';
+  this.type = 'application/xml; charset=utf-8';
   return yield next;
 }
