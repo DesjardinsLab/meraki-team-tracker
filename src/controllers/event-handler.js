@@ -72,12 +72,12 @@ module.exports.team = function *(next) {
           trackedClientsStatus[client.clientMac] = client;
 
           // filter out phone number
-          cleanOutput.push(
+          cleanOutput.push({
             name: client.name,
             img: client.img,
             seenTime: client.seenTime,
             clientMac: client.clientMac
-          );
+          });
         }
       }
     }
