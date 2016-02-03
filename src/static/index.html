@@ -41,12 +41,14 @@
         margin: 2em 30px;
       }
       ul {
+        display: flex;
+        flex-wrap: wrap;
+        list-style-type: none;
         margin: 0;
         padding: 0;
         margin-top: 20px;
       }
       li {
-        float: left;
         width: 50%;
         margin-bottom: 40px;
         padding-left: 30px;
@@ -94,15 +96,15 @@
         if (!window.calling) {
           window.calling = true;
           fetch('/call/' + id, {
-            method: 'POST',
-            // if there is a secret to use, it must be set beforehand.
-            secret: localStorage.secret
+            method: 'POST'
           }).then(function (response) {
             if (response.status !== 200) {
-              cb(response.statusText);
+              cb({err: response.statusText});
+            } else {
+              cb({});
             }
           }).catch(function (err) {
-            cb(err);
+            cb({err: err});
           });
           window.calling = false;
         }
@@ -150,7 +152,7 @@
               var callClass = 'action-call';
               var callHiddenClass = callClass + ' hidden';
               call.className = callHiddenClass;
-              call.setAttribute('src', './icons/ic_notifications_active_black_24px.svg');
+              call.setAttribute('src', './assets/ic_notifications_active_black_24px.svg');
               call.setAttribute('id', member.clientMac);
 
               pictureWrapper.appendChild(call);
@@ -170,8 +172,12 @@
               call.addEventListener('touchend', function () {
                 // if call is not hidden
                 if (this.className.indexOf('hidden') < 0) {
-                  window.call(this.id, function (err) {
-                    this.className = callClass + ' failed';
+                  window.call(this.id, function (res) {
+                    if (res.err) {
+                      this.className = callClass + ' failed';
+                    } else {
+                      this.className = callHiddenClass;
+                    }
                   }.bind(this));
                 }
               });
@@ -215,6 +221,11 @@
         });
       }
     </script>
-    <div id='presentMembers' />
+    <div id='presentMembers' class='page-team'>
+    </div>
+    <div class='meraki-thanks'>
+      Cette page est rendue possible grâce à:
+    </div>
+    <img class='meraki-logo' src='./assets/cisco-meraki.png'/>
   </body>
 </html>
