@@ -1,4 +1,5 @@
 var fs = require('fs');
+var crypto = require('crypto');
 
 var twilio = false;
 
@@ -13,16 +14,21 @@ const TIME_DELTA = process.env.TIME_DELTA ? process.env.TIME_DELTA : 90000;
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER ? process.env.TWILIO_PHONE_NUMBER : false;
 const TWILIO_TWIML_URL = process.env.TWILIO_TWIML_URL ? process.env.TWILIO_TWIML_URL : null;
 const TWILIO_CALLER_NAME = process.env.TWILIO_CALLER_NAME ? process.env.TWILIO_CALLER_NAME : null;
+
 // build associative array of tracked clients.
-const TRACKED_CLIENTS = (function () {
+const TRACKED_CLIENTS_BY_ID = [];
+// one array with mac addresses and one with internal IDs.
+const TRACKED_CLIENTS_BY_MAC = (function () {
   var trackedClientsData = JSON.parse(fs.readFileSync('./config/tracked-clients.json', 'utf8'));
-  var trackedClientsByMac = {};
+  var trackedClientsByMac = [];
 
   for (var i = 0; i < trackedClientsData.length; i++) {
     var trackedClientData = trackedClientsData[i];
     trackedClientData.clientMac = trackedClientData.clientMac.toLowerCase();
+    trackedClientData.id = crypto.randomBytes(20).toString('hex');;
 
-    trackedClientsByMac[trackedClientsData[i].clientMac.toLowerCase()] = trackedClientsData[i];
+    trackedClientsByMac[trackedClientsData[i].clientMac.toLowerCase()] = trackedClientData;
+    TRACKED_CLIENTS_BY_ID[trackedClientData.id] = trackedClientData;
   }
 
   return trackedClientsByMac;
@@ -32,25 +38,26 @@ module.exports.events = function *(next) {
   if (this.method === 'GET') {
     this.body = VALIDATOR;
   } else if (this.method === 'POST') {
+    if (this.request.body.secret !== SECRET) {
+      throw new Error('Wrong secret.');
+    }
     if (this.request.body.type === 'DevicesSeen') {
       for (var i = 0; i < this.request.body.data.observations.length; i++) {
         var observation = this.request.body.data.observations[i];
         observation.clientMac = observation.clientMac.toLowerCase();
 
-        if (typeof TRACKED_CLIENTS[observation.clientMac] !== 'undefined') {
-          TRACKED_CLIENTS[observation.clientMac] = {
+        if (typeof TRACKED_CLIENTS_BY_MAC[observation.clientMac] !== 'undefined') {
+          TRACKED_CLIENTS_BY_MAC[observation.clientMac] = {
             clientMac: observation.clientMac,
             seenTime: observation.seenTime,
-            name: TRACKED_CLIENTS[observation.clientMac].name,
-            img: TRACKED_CLIENTS[observation.clientMac].img,
-            clientPhone: TRACKED_CLIENTS[observation.clientMac].clientPhone,
-            clientExtension: TRACKED_CLIENTS[observation.clientMac].clientExtension
+            id: TRACKED_CLIENTS_BY_MAC[observation.clientMac].id,
+            name: TRACKED_CLIENTS_BY_MAC[observation.clientMac].name,
+            img: TRACKED_CLIENTS_BY_MAC[observation.clientMac].img,
+            clientPhone: TRACKED_CLIENTS_BY_MAC[observation.clientMac].clientPhone,
+            clientExtension: TRACKED_CLIENTS_BY_MAC[observation.clientMac].clientExtension
           };
         }
       }
-    }
-    if (this.request.body.secret !== SECRET) {
-      throw new Error('Wrong secret.');
     }
     this.body = this.request.body;
   }
@@ -63,9 +70,9 @@ module.exports.team = function *(next) {
     var trackedClientsStatus = {};
     var cleanOutput = [];
 
-    for (var i in TRACKED_CLIENTS) {
-      if (TRACKED_CLIENTS.hasOwnProperty(i)) {
-        var client = TRACKED_CLIENTS[i];
+    for (var i in TRACKED_CLIENTS_BY_MAC) {
+      if (TRACKED_CLIENTS_BY_MAC.hasOwnProperty(i)) {
+        var client = TRACKED_CLIENTS_BY_MAC[i];
 
         // if client has been seen within time interval,
         if ((new Date() - TIME_DELTA) < new Date(client.seenTime)) {
@@ -73,16 +80,17 @@ module.exports.team = function *(next) {
 
           // filter out phone number
           cleanOutput.push({
+            id: client.id,
             name: client.name,
             img: client.img,
             seenTime: client.seenTime,
-            clientMac: client.clientMac
+            hasPhone: client.clientPhone ? true : false
           });
         }
       }
     }
 
-    this.body = trackedClientsStatus;
+    this.body = cleanOutput;
   }
 
   yield next;
@@ -92,15 +100,14 @@ const CALL_LIMIT_INTERVAL = process.env.TWILIO_CALL_LIMIT_INTERVAL ? process.env
 const RESTRICTED_CALLS = {};
 
 var handleCallLimit = function (id) {
-  if (RESTRICTED_CALLS[id.toLowerCase()]) {
-    delete RESTRICTED_CALLS[id.toLowerCase()];
-    console.log('Call limit has been cleared for: ' + TRACKED_CLIENTS[id.toLowerCase()].name);
+  if (RESTRICTED_CALLS[id]) {
+    delete RESTRICTED_CALLS[id];
   }
 };
 
 var limitCalls = function (id) {
-  if (!RESTRICTED_CALLS[id.toLowerCase()] && CALL_LIMIT_INTERVAL > 0) {
-    RESTRICTED_CALLS[id.toLowerCase()] = setTimeout(handleCallLimit, CALL_LIMIT_INTERVAL, id);
+  if (!RESTRICTED_CALLS[id] && CALL_LIMIT_INTERVAL > 0) {
+    RESTRICTED_CALLS[id] = setTimeout(handleCallLimit, CALL_LIMIT_INTERVAL, id);
   }
 };
 
@@ -113,7 +120,7 @@ module.exports.call = function *(id, next) {
     throw new Error('Unauthorized', 401);
   }
   // throw error if target has been recently called
-  else if (RESTRICTED_CALLS[id.toLowerCase()]) {
+  else if (RESTRICTED_CALLS[id]) {
     this.status = 403;
     throw new Error('Delay not met', 403);
   }
@@ -122,8 +129,9 @@ module.exports.call = function *(id, next) {
     this.body = 'Twilio is not configured. Cannot call.';
     return yield next;
   } else if (this.method === 'POST') {
-    var targetClient = TRACKED_CLIENTS[id.toLowerCase()];
+    var targetClient = TRACKED_CLIENTS_BY_ID[id];
     var twimlUrl = TWILIO_TWIML_URL ? TWILIO_TWIML_URL : this.request.origin + '/twiml/' + encodeURIComponent(targetClient.name);
+    console.log(twimlUrl);
 
     if (targetClient.clientPhone && TWILIO_PHONE_NUMBER) {
       twilio.makeCall({
@@ -139,9 +147,9 @@ module.exports.call = function *(id, next) {
           limitCalls(id);
         }
       });
-      this.body = 'Making call to: ' + id;
+      this.body = 'Making call to: ' + targetClient.name;
     } else if (TWILIO_PHONE_NUMBER) {
-      this.body = 'No phone number specified for client: ' + id;
+      this.body = 'No phone number specified for client: ' + targetClient.name;
     } else {
       this.body = 'No phone number specified for Twilio.';
     }

@@ -4,6 +4,7 @@
   "description": "Meraki API interface.",
   "main": "src/app.js",
   "dependencies": {
+    "crypto": "0.0.3",
     "dotenv": "^2.0.0",
     "fs": "0.0.2",
     "koa": "^1.1.2",

@@ -9,19 +9,27 @@
         width: 60px;
         height: 60px;
         opacity: 1;
-        transition: opacity 0.5s ease-in-out;
+        transition: opacity 1.5s ease-in-out;
         pointer-events: all;
 
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        padding: 30px;
+        padding: 10px;
         border-radius: 50%;
         background-color: #FFFFFF;
       }
+      img.action-call.success {
+        content: url('./assets/ic_done.svg');
+        background-color: #008c53;
+      }
       img.action-call.failed {
-        background-color: red;
+        content: url('./assets/ic_clear.svg');
+        background-color: #FF0000;
+      }
+      img.action-call.success, img.action-call.failed {
+        pointer-events: none;
       }
       img.action-call.hidden {
         opacity: 0;
@@ -96,7 +104,12 @@
         if (!window.calling) {
           window.calling = true;
           fetch('/call/' + id, {
-            method: 'POST'
+            method: 'POST',
+            headers: new Headers({
+              "Content-Type": 'application/json'
+            }),
+            // don't do this.
+            body: JSON.stringify({secret: localStorage.secret})
           }).then(function (response) {
             if (response.status !== 200) {
               cb({err: response.statusText});
@@ -146,14 +159,14 @@
             picture.setAttribute('src', member.img);
             picture.className = 'team-member-avatar';
 
-            if (member.clientPhone) {
+            if (member.hasPhone) {
               // add call functionality
               var call = document.createElement('IMG');
               var callClass = 'action-call';
               var callHiddenClass = callClass + ' hidden';
               call.className = callHiddenClass;
-              call.setAttribute('src', './assets/ic_notifications_active_black_24px.svg');
-              call.setAttribute('id', member.clientMac);
+              call.setAttribute('src', './assets/ic_notifications_active.svg');
+              call.setAttribute('id', member.id);
 
               pictureWrapper.appendChild(call);
 
@@ -174,9 +187,9 @@
                 if (this.className.indexOf('hidden') < 0) {
                   window.call(this.id, function (res) {
                     if (res.err) {
-                      this.className = callClass + ' failed';
+                      this.className = callHiddenClass + ' failed';
                     } else {
-                      this.className = callHiddenClass;
+                      this.className = callHiddenClass + ' success';
                     }
                   }.bind(this));
                 }
@@ -206,7 +219,7 @@
               container.appendChild(content);
             }
           } else {
-            var emptyText = document.createElement('H2');
+            var emptyText = document.createElement('H1');
             emptyText.appendChild(document.createTextNode('There is no one here.'));
             container.appendChild(emptyText);
           }
@@ -224,7 +237,7 @@
     <div id='presentMembers' class='page-team'>
     </div>
     <div class='meraki-thanks'>
-      Cette page est rendue possible grâce à:
+      This page is powered by:
     </div>
     <img class='meraki-logo' src='./assets/cisco-meraki.png'/>
   </body>

@@ -1,7 +1,16 @@
 var fs = require('fs');
 var prompt = require('prompt');
 
-var clients = JSON.parse(fs.readFileSync('./config/tracked-clients.json', 'utf8'));
+var path = './config/tracked-clients.json';
+var clients = [];
+
+fs.access(path, fs.F_OK, function (err) {
+  if (!err) {
+    clients = JSON.parse(fs.readFileSync(path, 'utf8'));
+  } else {
+    console.log('File does not exist, will create new file.');
+  }
+});
 
 var properties = [
   {
@@ -17,6 +26,9 @@ var properties = [
   },
   {
     name: 'clientPhone'
+  },
+  {
+    name: 'clientExtension'
   }
 ];
 

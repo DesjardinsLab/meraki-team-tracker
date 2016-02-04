@@ -2,7 +2,7 @@
 require('dotenv').config({path: 'config/.env'});
 
 var koa = require('koa');
-var cors = require('koa-cors')({method: ['GET', 'POST', 'OPTIONS']});
+var cors = require('koa-cors')();
 var route = require('koa-route');
 var koaStatic = require('koa-static')('src/static');
 var logger = require('koa-logger')();
