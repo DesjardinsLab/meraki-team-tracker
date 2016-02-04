@@ -131,7 +131,6 @@ module.exports.call = function *(id, next) {
   } else if (this.method === 'POST') {
     var targetClient = TRACKED_CLIENTS_BY_ID[id];
     var twimlUrl = TWILIO_TWIML_URL ? TWILIO_TWIML_URL : this.request.origin + '/twiml/' + encodeURIComponent(targetClient.name);
-    console.log(twimlUrl);
 
     if (targetClient.clientPhone && TWILIO_PHONE_NUMBER) {
       twilio.makeCall({
