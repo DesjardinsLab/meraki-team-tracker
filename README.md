@@ -71,6 +71,8 @@ Assuming that the following environment variables are specified in .env:
   0. **TWILIO_TOKEN**
   0. **TWILIO_PHONE_NUMBER**
 
-It is possible to send a call to tracked clients using the demo page 'index.html'.\
+It is possible to send a call to tracked clients using the demo page 'index.html'.
+
+To send a call, simply click a tracked client's image twice.
 
 Note that without a proper twiml message specified, the voice will state a generic error.

@@ -170,7 +170,7 @@
 
               pictureWrapper.appendChild(call);
 
-              pictureWrapper.addEventListener('touchend', function (event) {
+              pictureWrapper.addEventListener('click', function (event) {
                 var calledElement = this.children[0];
                 if (!this.callActive) {
                   this.callActive = true;
@@ -182,7 +182,7 @@
                 }
               });
 
-              call.addEventListener('touchend', function () {
+              call.addEventListener('click', function () {
                 // if call is not hidden
                 if (this.className.indexOf('hidden') < 0) {
                   window.call(this.id, function (res) {
