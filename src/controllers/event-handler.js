@@ -166,5 +166,5 @@ module.exports.twiml = function *(name, next) {
     process.env.TWILIO_TWIML_LANGUAGE + '">' +
     addNameToMessage(process.env.TWILIO_TWIML_MSG, name) + '</Say></Response>';
   this.type = 'application/xml; charset=utf-8';
-  return yield next;
+  yield next;
 }
