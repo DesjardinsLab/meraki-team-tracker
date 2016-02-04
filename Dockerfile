@@ -9,4 +9,4 @@ RUN npm install --production
 
 EXPOSE 4000
 
-CMD ["npm", "run", "prod"]
+CMD ["npm", "start"]
