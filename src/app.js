@@ -13,6 +13,7 @@ var eventHandler = require('./controllers/event-handler');
 const MERAKI_EVENTS_ROOT = process.env.MERAKI_POST_PATH ? process.env.MERAKI_POST_PATH : '/cmx';
 const TEAM = '/team';
 const CALL = '/call/:id';
+const MSG = '/msg/:id';
 
 var app = koa();
 
@@ -30,6 +31,7 @@ app.use(route.post(MERAKI_EVENTS_ROOT, eventHandler.events));
 app.use(route.get(TEAM, eventHandler.team));
 
 app.use(route.post(CALL, eventHandler.call));
+app.use(route.post(MSG, eventHandler.msg));
 app.use(route.post('/twiml/:name', eventHandler.twiml));
 
 app.listen(process.env.PORT ? process.env.PORT : 8080);

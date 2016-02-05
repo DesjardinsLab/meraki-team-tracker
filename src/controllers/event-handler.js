@@ -161,6 +161,45 @@ var addNameToMessage = function (msg, name) {
   return msg.replace('%n', name);
 }
 
+module.exports.msg = function *(id, next) {
+  // throw error if request secret does not match env secret
+  if (TWILIO_SECRET && TWILIO_SECRET !== this.request.body.secret) {
+    this.status = 401;
+    throw new Error('Unauthorized', 401);
+  }
+  if (!this.request.body.msg) {
+    this.status = 400;
+    throw new Error("Form field 'msg' not specified.", 400);
+  }
+
+  if (!TWILIO_PHONE_NUMBER || !twilio) {
+    this.body = 'Twilio is not configured. Cannot send message.';
+  } else if (this.method === 'POST') {
+    var targetClient = TRACKED_CLIENTS_BY_ID[id];
+    var twimlUrl = TWILIO_TWIML_URL ? TWILIO_TWIML_URL : this.request.origin + '/twiml/' + encodeURIComponent(targetClient.name);
+
+    if (targetClient.clientPhone && TWILIO_PHONE_NUMBER) {
+      twilio.sendMessage({
+        to: targetClient.clientPhone,
+        from: TWILIO_PHONE_NUMBER,
+        callerName: TWILIO_CALLER_NAME,
+        sendDigits: targetClient.clientExtension ? targetClient.clientExtension : null,
+        body: addNameToMessage(this.request.body.msg, targetClient.name)
+      }, function (err, responseData) {
+        if (err) {
+          console.log(err);
+        }
+      });
+      this.body = 'Sent message to: ' + targetClient.name;
+    } else if (TWILIO_PHONE_NUMBER) {
+      this.body = 'No phone number specified for client: ' + targetClient.name;
+    } else {
+      this.body = 'No phone number specified for Twilio.';
+    }
+  }
+  yield next;
+}
+
 module.exports.twiml = function *(name, next) {
   this.body = '<?xml version="1.0" encoding="UTF-8"?><Response><Pause /><Say voice="woman" language="' +
     process.env.TWILIO_TWIML_LANGUAGE + '">' +

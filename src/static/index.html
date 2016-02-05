@@ -5,34 +5,49 @@
       body {
         font-family: Calibri, Arial, Sans-serif;
       }
-      img.action-call {
+      div.actions-wrapper {
+        margin-top: 10px;
+        display: flex;
+      }
+      button.action {
         width: 60px;
         height: 60px;
-        opacity: 1;
-        transition: opacity 1.5s ease-in-out;
+        border: 1px solid black;
         pointer-events: all;
+        transition: background-color 0.75s ease-in-out;
+        position: relative;
 
+        padding: 10px;
+        margin-right: 20px;
+        border-radius: 50%;
+        background-color: #FFFFFF;
+      }
+      button.action img {
+        width: 32px;
+        height: 32px;
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        padding: 10px;
-        border-radius: 50%;
-        background-color: #FFFFFF;
       }
-      img.action-call.success {
-        content: url('./assets/ic_done.svg');
+      img.success, img.failed {
+        opacity: 0;
+        z-index: 1;
+        transition: opacity 0.75s ease-in-out;
+      }
+      button.action.failed img, button.action.success img {
+        opacity: 1;
+      }
+      button.action.failed img.label, button.action.success img.label {
+        opacity: 0;
+      }
+      button.action.success {
         background-color: #008c53;
       }
-      img.action-call.failed {
-        content: url('./assets/ic_clear.svg');
+      button.action.failed {
         background-color: #FF0000;
       }
-      img.action-call.success, img.action-call.failed {
-        pointer-events: none;
-      }
-      img.action-call.hidden {
-        opacity: 0;
+      button.action.disabled {
         pointer-events: none;
       }
       h1, h2 {
@@ -63,7 +78,6 @@
         box-sizing: border-box;
       }
       li .team-member-pic {
-        position: relative;
         float: left;
         width: 20%;
       }
@@ -100,6 +114,33 @@
   </head>
   <body>
     <script type="text/javascript">
+      window.msg = function (id, msg, cb) {
+        if (!window.messaging) {
+          window.messaging = true;
+          fetch('/msg/' + id, {
+            method: 'POST',
+            headers: new Headers({
+              "Content-Type": 'application/json'
+            }),
+            // don't do this.
+            body: JSON.stringify({
+              secret: localStorage.secret,
+              msg: msg
+            })
+          }).then(function (response) {
+            if (response.status !== 200) {
+              cb({err: response.statusText});
+            } else {
+              cb({});
+            }
+          }).catch(function (err) {
+            cb({err: err});
+          });
+          window.messaging = false;
+        }
+      };
+    </script>
+    <script type="text/javascript">
       window.call = function (id, cb) {
         if (!window.calling) {
           window.calling = true;
@@ -124,6 +165,56 @@
       };
     </script>
     <script type="text/javascript">
+      var createActionElement = function (name, icon, member, msg) {
+        var element = document.createElement('BUTTON');
+        var actionClass = 'action';
+
+        element.className = actionClass + ' ' + name;
+        element.setAttribute('memberId', member.id);
+
+        var baseImg = document.createElement('IMG');
+        baseImg.setAttribute('src', icon);
+        baseImg.className = 'label';
+        var successImg = document.createElement('IMG');
+        successImg.className = 'success';
+        successImg.setAttribute('src', './assets/ic_done.svg');
+        var failedImg = document.createElement('IMG');
+        failedImg.className = 'failed';
+        failedImg.setAttribute('src', './assets/ic_clear.svg');
+
+        element.appendChild(baseImg);
+        element.appendChild(successImg);
+        element.appendChild(failedImg);
+
+        var cb = function (res) {
+          if (res.err) {
+            this.className += ' failed disabled';
+          } else {
+            this.className += ' success disabled';
+          }
+
+          window.timerClear = setTimeout(function () {
+            var elements = this.parentNode.children;
+            for (var i = 0; i < elements.length; i++) {
+              var element = elements[i];
+              element.className = element.className.replace(' success', '');
+              element.className = element.className.replace(' failed', '');
+              element.className = element.className.replace(' disabled', '');
+            }
+          }.bind(this), 3000);
+        }
+
+        element.addEventListener('click', function () {
+          if (msg) {
+            window.msg(element.getAttribute('memberId'), msg, cb.bind(this));
+          } else {
+            window.call(element.getAttribute('memberId'), cb.bind(this));
+          }
+        });
+
+        return element;
+      }
+
       var memberList = document.getElementById('memberList');
       if (!window.processing && !memberList) {
         window.processing = true;
@@ -137,7 +228,7 @@
           content.appendChild(title);
 
           var description = document.createElement('DIV');
-          description.appendChild(document.createTextNode('The following people are in being detected by Meraki.'));
+          description.appendChild(document.createTextNode('The following people were detected by Meraki:'));
           description.className = 'desc';
           content.appendChild(description);
 
@@ -159,43 +250,6 @@
             picture.setAttribute('src', member.img);
             picture.className = 'team-member-avatar';
 
-            if (member.hasPhone) {
-              // add call functionality
-              var call = document.createElement('IMG');
-              var callClass = 'action-call';
-              var callHiddenClass = callClass + ' hidden';
-              call.className = callHiddenClass;
-              call.setAttribute('src', './assets/ic_notifications_active.svg');
-              call.setAttribute('id', member.id);
-
-              pictureWrapper.appendChild(call);
-
-              pictureWrapper.addEventListener('click', function (event) {
-                var calledElement = this.children[0];
-                if (!this.callActive) {
-                  this.callActive = true;
-                  calledElement.className = callClass;
-                  setTimeout(function() {
-                    this.callActive = false;
-                    calledElement.className = callHiddenClass;
-                  }.bind(this), 7500);
-                }
-              });
-
-              call.addEventListener('click', function () {
-                // if call is not hidden
-                if (this.className.indexOf('hidden') < 0) {
-                  window.call(this.id, function (res) {
-                    if (res.err) {
-                      this.className = callHiddenClass + ' failed';
-                    } else {
-                      this.className = callHiddenClass + ' success';
-                    }
-                  }.bind(this));
-                }
-              });
-            }
-
             pictureWrapper.appendChild(picture);
             memberElement.appendChild(pictureWrapper);
 
@@ -205,6 +259,28 @@
             var name = document.createElement('H1');
             name.appendChild(document.createTextNode(member.name));
             infoWrapper.appendChild(name);
+
+            var actionsWrapper = document.createElement('DIV');
+            actionsWrapper.className = 'actions-wrapper';
+
+            if (member.hasPhone) {
+              // add call action
+              var call = createActionElement('call', './assets/ic_notifications_active.svg', member);
+              actionsWrapper.appendChild(call);
+
+              // add like action
+              var msgLike = createActionElement('like', './assets/ic_thumb_up.svg', member, 'Hey %n, someone likes you!');
+              actionsWrapper.appendChild(msgLike);
+
+              // add love action
+              var msgLove = createActionElement('love', './assets/ic_favorite.svg', member, 'Hey %n, someone LOVES you! <3');
+              actionsWrapper.appendChild(msgLove);
+
+              // add coffee action
+              var msgCoffee = createActionElement('coffee', './assets/ic_local_cafe.svg', member, 'Hey %n, someone wants to take you out to coffee!');
+              actionsWrapper.appendChild(msgCoffee);
+            }
+            infoWrapper.appendChild(actionsWrapper);
 
             memberElement.appendChild(infoWrapper);
             memberList.appendChild(memberElement);
