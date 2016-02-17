@@ -52,7 +52,7 @@ prompt.get(properties, function(err, result) {
 
     clients.push(newClient);
 
-    fs.writeFile('./config/tracked-clients.json', JSON.stringify(clients), function(err) {
+    fs.writeFile(path, JSON.stringify(clients), function(err) {
       if(err) {
           return console.log(err);
       }
