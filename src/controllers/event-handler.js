@@ -39,7 +39,7 @@ module.exports.events = function *(next) {
     this.body = VALIDATOR;
   } else if (this.method === 'POST') {
     if (this.request.body.secret !== SECRET) {
-      throw new Error('Wrong secret.');
+      throw new Error('Wrong secret "' + this.request.body.secret + '".');
     }
     if (this.request.body.type === 'DevicesSeen') {
       for (var i = 0; i < this.request.body.data.observations.length; i++) {
