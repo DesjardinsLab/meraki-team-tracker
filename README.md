@@ -76,3 +76,8 @@ It is possible to send a call to tracked clients using the demo page 'index.html
 To send a call, simply click a tracked client's image twice.
 
 Note that without a proper twiml message specified, the voice will state a generic error.
+
+Creating new users via http requests
+==================
+
+This feature is untested for now.
