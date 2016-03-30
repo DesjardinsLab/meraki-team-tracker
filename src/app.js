@@ -9,7 +9,6 @@ var logger = require('koa-logger')();
 var bodyParser = require('koa-bodyparser')();
 
 var eventHandler = require('./controllers/event-handler');
-var clientHandler = require('./controllers/client-handler');
 
 const MERAKI_EVENTS_ROOT = process.env.MERAKI_POST_PATH ? process.env.MERAKI_POST_PATH : '/cmx';
 const TEAM = '/team';
@@ -31,8 +30,6 @@ app.use(bodyParser);
 app.use(route.get(MERAKI_EVENTS_ROOT, eventHandler.events));
 app.use(route.post(MERAKI_EVENTS_ROOT, eventHandler.events));
 app.use(route.get(TEAM, eventHandler.team));
-
-app.use(route.post(ADD_CLIENT, clientHandler.addClient));
 
 app.use(route.post(CALL, eventHandler.call));
 app.use(route.post(MSG, eventHandler.msg));
