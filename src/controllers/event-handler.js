@@ -7,13 +7,13 @@ if (process.env.TWILIO_SID && process.env.TWILIO_AUTH_TOKEN) {
   twilio = require('twilio')(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
 }
 
-const VALIDATOR = process.env.VALIDATOR ? process.env.VALIDATOR : '';
-const SECRET = process.env.SECRET ? process.env.SECRET : 'secret';
-const TIME_DELTA = process.env.TIME_DELTA ? process.env.TIME_DELTA : 90000;
+const VALIDATOR = process.env.VALIDATOR || '';
+const SECRET = process.env.SECRET || 'secret';
+const TIME_DELTA = process.env.TIME_DELTA || 90000;
 
-const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER ? process.env.TWILIO_PHONE_NUMBER : false;
-const TWILIO_TWIML_URL = process.env.TWILIO_TWIML_URL ? process.env.TWILIO_TWIML_URL : null;
-const TWILIO_CALLER_NAME = process.env.TWILIO_CALLER_NAME ? process.env.TWILIO_CALLER_NAME : null;
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || false;
+const TWILIO_TWIML_URL = process.env.TWILIO_TWIML_URL || null;
+const TWILIO_CALLER_NAME = process.env.TWILIO_CALLER_NAME || null;
 
 // build associative array of tracked clients.
 const TRACKED_CLIENTS_BY_ID = [];
@@ -25,7 +25,7 @@ const TRACKED_CLIENTS_BY_MAC = (function () {
   for (var i = 0; i < trackedClientsData.length; i++) {
     var trackedClientData = trackedClientsData[i];
     trackedClientData.clientMac = trackedClientData.clientMac.toLowerCase();
-    trackedClientData.id = crypto.randomBytes(20).toString('hex');;
+    trackedClientData.id = crypto.randomBytes(20).toString('hex');
 
     trackedClientsByMac[trackedClientsData[i].clientMac.toLowerCase()] = trackedClientData;
     TRACKED_CLIENTS_BY_ID[trackedClientData.id] = trackedClientData;
@@ -96,7 +96,7 @@ module.exports.team = function *(next) {
   yield next;
 }
 
-const CALL_LIMIT_INTERVAL = process.env.TWILIO_CALL_LIMIT_INTERVAL ? process.env.TWILIO_CALL_LIMIT_INTERVAL : 0;
+const CALL_LIMIT_INTERVAL = process.env.TWILIO_CALL_LIMIT_INTERVAL || 0;
 const RESTRICTED_CALLS = {};
 
 var handleCallLimit = function (id) {
